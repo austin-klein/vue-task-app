@@ -34,13 +34,13 @@ const getCurrentUser = () => {
 
 router.beforeEach(async (to, _from, next) => {
   if (to.matched.some((record) => record.meta.requiresAuth)) {
-    console.log(auth);
     if (await getCurrentUser()) {
-      next();
+      return next();
     } else {
-      next("/register");
+      return next("/register");
     }
   }
+  return next();
 });
 
 export default router;

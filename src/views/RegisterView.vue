@@ -6,11 +6,15 @@
 import router from "@/router";
 import { auth } from "@/firebase";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { useAuthStore } from "@/stores/auth";
+
+const { updateUser } = useAuthStore();
 
 const signInWithGoogle = async () => {
   const provider = new GoogleAuthProvider();
   try {
-    await signInWithPopup(auth, provider);
+    const res = await signInWithPopup(auth, provider);
+    updateUser(res.user.email as string);
     router.push("/");
   } catch (error) {
     console.log(error);

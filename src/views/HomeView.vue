@@ -1,20 +1,20 @@
 <template>
   <div class="container">
-    <h1>Task Tracker</h1>
+    <div>
+      <p @click="logoutUser" class="logout">logout</p>
+      <h1 class="title">Tasks for {{ user }}</h1>
+    </div>
     <form v-on:submit.prevent="addTask" class="group">
       <input type="text" placeholder="enter a task" v-model="newTaskContent" />
-      <button :disabled="!newTaskContent">Enter</button>
+      <button :disabled="!newTaskContent" class="btn">Add</button>
     </form>
-
-    <div class="card">
-      <div
-        v-for="task in tasks"
-        v-bind:key="task.id"
-        class="item"
-        :class="{ done: task.done }"
-      >
-        {{ task.content }} <button @click="toggleDone(task.id)">&check;</button>
-        <button @click="deleteTask(task.id)">&cross;</button>
+    <div v-auto-animate>
+      <div v-for="task in tasks" v-bind:key="task.id" class="item">
+        <p :class="{ done: task.done }">{{ task.content }}</p>
+        <div class="buttons">
+          <div @click="toggleDone(task.id)">&check;</div>
+          <div @click="deleteTask(task.id)">&cross;</div>
+        </div>
       </div>
     </div>
   </div>
@@ -28,16 +28,25 @@ import {
   onSnapshot,
   addDoc,
   query,
+  where,
   orderBy,
   deleteDoc,
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "@/firebase";
+import { auth, db } from "@/firebase";
+import { useAuthStore } from "@/stores/auth";
+import { signOut } from "@firebase/auth";
+import router from "@/router";
 
+const { user, updateUser } = useAuthStore();
 const tasks = ref<Task[]>([]);
 const tasksCollectionRef = collection(db, "tasks");
-const tasksCollectionQuery = query(tasksCollectionRef, orderBy("date", "desc"));
+const tasksCollectionQuery = query(
+  tasksCollectionRef,
+  where("user", "==", user),
+  orderBy("date", "desc")
+);
 
 onMounted(async () => {
   onSnapshot(tasksCollectionQuery, (querySnapshot) => {
@@ -61,6 +70,7 @@ const addTask = async () => {
     await addDoc(tasksCollectionRef, {
       content: newTaskContent.value,
       done: false,
+      user,
       date: Date.now(),
     });
     newTaskContent.value = "";
@@ -79,11 +89,19 @@ const deleteTask = async (id: string) => {
 
 const toggleDone = async (id: string) => {
   const task = tasks.value.find((task) => task.id === id);
-
   try {
     await updateDoc(doc(tasksCollectionRef, id), {
       done: !task?.done,
     });
+  } catch (error) {
+    console.log(error);
+  }
+};
+const logoutUser = async () => {
+  try {
+    await signOut(auth);
+    updateUser("");
+    router.push("/register");
   } catch (error) {
     console.log(error);
   }
@@ -97,22 +115,85 @@ const toggleDone = async (id: string) => {
   margin: 0 auto;
 }
 
+.title {
+  font-size: 1.4rem;
+}
+
+.logout {
+  text-decoration: underline;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.btn {
+  background-color: rgb(46, 150, 225);
+  border: 1px solid rgb(46, 150, 225);
+  color: #fff;
+  font-weight: bold;
+  padding: 1rem;
+
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: rgb(28, 95, 144);
+  transition: all 0.4s;
+}
+
 .group {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.card {
-  padding: 2rem;
-  border: 1px solid #000;
+.group input {
+  padding: 1rem;
+  border: 1px solid rgba(128, 128, 128, 0.336);
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+  width: 100%;
 }
 
 .item {
   margin-top: 1rem;
+  box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+  padding: 1rem;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .done {
-  background-color: green;
+  text-decoration: line-through;
+  color: gray;
+}
+
+.buttons {
+  display: flex;
+}
+
+.buttons div {
+  border: none;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  margin: 0 4px;
+  border-radius: 5px;
+}
+
+.buttons div:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s;
+}
+
+.buttons div:first-of-type {
+  background-color: rgba(0, 128, 0, 0.1);
+  color: green;
+}
+.buttons div:last-of-type {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: red;
 }
 </style>
