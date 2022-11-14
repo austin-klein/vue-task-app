@@ -10,11 +10,11 @@
     </form>
     <div v-auto-animate>
       <div v-for="task in tasks" v-bind:key="task.id" class="item">
-        <p :class="{ done: task.done }">{{ task.content }}</p>
-        <div class="buttons">
-          <div @click="toggleDone(task.id)">&check;</div>
-          <div @click="deleteTask(task.id)">&cross;</div>
-        </div>
+        <TaskItemVue
+          :task="task"
+          :toggleDone="toggleDone"
+          :deleteTask="deleteTask"
+        />
       </div>
     </div>
   </div>
@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import type { Task } from "../types/index";
+import TaskItemVue from "@/components/TaskItem.vue";
 import {
   collection,
   onSnapshot,
